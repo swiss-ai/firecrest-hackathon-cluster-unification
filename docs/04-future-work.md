@@ -22,7 +22,7 @@ today or out of scope for the minimal version.
 | **No wait limit** | As today, `mc run` waits until every job ends, however long a queue holds it. | An optional limit that cancels pending jobs (tried during the hackathon as `--max-wait`, removed to keep the minimal version small). |
 | **Sizing per architecture** | 4 × 96 GB (GH200) vs 4 × 128 GB (MI300A) per node changes node counts for a model. | Profile carries node memory; sizing (as in `model-launch-factory`) reads it. |
 | **Staging across clusters** | Working dirs and `$SCRATCH` are per cluster; capstor is shared. | Stage per profile; reuse capstor where both clusters see it. |
-| **`sml`, `evals-svc`, factory** | Each still has its own per-cluster configuration. | Step 4: bring the registry into `sml` first; the others can then reuse it. |
+| **`sml`, `evals-svc`, factory** | Each still has its own per-cluster configuration. | Step 4 brought per-system endpoints into `sml` ([model-launch#279](https://github.com/swiss-ai/model-launch/pull/279), `~/.sml/clusters.yml`); `evals-svc` and the factory could reuse its `firecrest_endpoints` module. |
 
 ## Found along the way
 

@@ -58,6 +58,9 @@ uv run mc status mock-amd:12345
 uv run python bench/measure.py
 ```
 
+Step 4, the same idea inside `sml`: [swiss-ai/model-launch#279](https://github.com/swiss-ai/model-launch/pull/279)
+(draft), an optional `~/.sml/clusters.yml` mapping systems to their own FirecREST instance.
+
 Write-ups: [step 1](docs/01-reproduction.md), [step 2](docs/02-results.md),
 [architecture challenges](docs/03-challenges.md), [known weaknesses](docs/04-future-work.md).
 
