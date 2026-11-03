@@ -1,24 +1,30 @@
 #!/usr/bin/env bash
 # Reproduce, with the real `sml`, what using one tool against several FirecREST
-# instances looks like today. Nothing is submitted: `sml advanced --output-script`
-# goes through the whole FirecREST setup (auth, system list, partitions) and then
-# only renders the job scripts.
+# instances looks like today: daint (hackathon app) and Clariden (Swiss AI app),
+# two instances with two URLs and two OIDC clients, plus Beverin's URL.
+#
+# Nothing is submitted: `sml advanced --output-script` goes through the whole
+# FirecREST setup (token, system list, partitions) and then only renders the
+# job scripts.
 #
 #   set -a; source .env; set +a
 #   baseline/sml_repro.sh /path/to/model-launch   # a checkout of swiss-ai/model-launch
 #
-# Everything sml writes (configs, keyring, rendered scripts) goes to a temp dir
-# that is deleted on exit (its keyring holds the secrets in plaintext); your real
-# ~/.sml and system keyring are not touched.
+# Needs MOCK_NV_CLIENT_ID/SECRET and HACKATHON_ACCOUNT (daint); CLARIDEN_CLIENT_ID/
+# SECRET (and optionally CLARIDEN_ACCOUNT) for the Clariden steps, which are
+# skipped otherwise. Everything sml writes (configs, keyring, rendered scripts)
+# goes to a temp dir that is deleted on exit (its keyring holds the secrets in
+# plaintext); your real ~/.sml and system keyring are not touched.
 set -uo pipefail
 
 SML_REPO=${1:?usage: $0 /path/to/model-launch}
-: "${MOCK_NV_CLIENT_ID:?source .env first}" "${MOCK_AMD_CLIENT_ID:?}" "${HACKATHON_ACCOUNT:?}"
+: "${MOCK_NV_CLIENT_ID:?source .env first}" "${MOCK_NV_CLIENT_SECRET:?}" "${HACKATHON_ACCOUNT:?}"
 
 DAINT_URL=https://api.cscs.ch/hpc/firecrest/v2
 CLARIDEN_URL=https://api.cscs.ch/ml/firecrest/v2
 BEVERIN_URL=https://api.svc.cscs.ch/beverin/firecrest/v2
 TOKEN_URI=https://auth.cscs.ch/auth/realms/firecrest-clients/protocol/openid-connect/token
+ENV_TOML="$SML_REPO/src/swiss_ai_model_launch/assets/envs/sglang_base.toml"
 
 SANDBOX=$(mktemp -d -t sml-repro-XXXX)
 trap 'rm -rf "$SANDBOX"' EXIT
@@ -29,24 +35,26 @@ sml() { uv run --project "$SML_REPO" sml "$@" </dev/null; }
 
 # One `sml init` per cluster: URL, token URI, client ID, client secret.
 init() {
-    local name=$1 url=$2 client_id=$3 client_secret=$4
-    SML_CONFIG_DIR="$SANDBOX/$name" SML_FIRECREST_CLIENT_ID=$client_id SML_FIRECREST_CLIENT_SECRET=$client_secret \
+    local config=$1 url=$2 client_id=$3 client_secret=$4
+    SML_CONFIG_DIR="$SANDBOX/$config" SML_FIRECREST_CLIENT_ID=$client_id SML_FIRECREST_CLIENT_SECRET=$client_secret \
         sml init --launcher firecrest --firecrest-url "$url" --firecrest-token-uri "$TOKEN_URI" >/dev/null 2>&1
+    echo "  sml init $config ($url)"
 }
 
-# Render (not submit) a launch on SYSTEM using CONFIG; print the outcome in one line.
+# Render (not submit) a launch with CONFIG on SYSTEM/PARTITION; print the outcome in one line.
 render() {
-    local config=$1 system=$2 started=$SECONDS
-    local out
+    local config=$1 system=$2 partition=$3 account=${4:-} started=$SECONDS out code
+    local -a extra=()
+    [[ -n "$account" ]] && extra+=(--account "$account")
+    [[ "$system" == daint ]] && extra+=(--reservation firecrest)
     out=$(SML_CONFIG_DIR="$SANDBOX/$config" sml advanced \
-        --framework sglang --environment "$SML_REPO/src/swiss_ai_model_launch/assets/envs/sglang_base.toml" \
+        --framework sglang --environment "$ENV_TOML" \
         --framework-args "--model-path /none --served-model-name t/probe --host 0.0.0.0" \
-        --system "$system" --partition normal --reservation firecrest --account "$HACKATHON_ACCOUNT" \
+        --system "$system" --partition "$partition" "${extra[@]}" \
         --output-script "$SANDBOX/out-$config-$system" 2>&1)
-    local code=$?
-    local last
-    last=$(grep -E "Error|Exception|Wrote" <<<"$out" | tail -1 | cut -c1-200)
-    printf '  exit=%s %ss  %s\n' "$code" $((SECONDS - started)) "$last"
+    code=$?
+    printf '  [%s config -> %s] exit=%s %ss  %s\n' "$config" "$system" "$code" $((SECONDS - started)) \
+        "$(grep -E "Error|Exception|Wrote" <<<"$out" | tail -1 | cut -c1-170)"
 }
 
 stored_client() {
@@ -54,24 +62,38 @@ stored_client() {
         'import keyring; print(keyring.get_password("swiss_ai_model_launch", "firecrest_client_id"))'
 }
 
-echo "1. Configure two clusters, one sml config each (SML_CONFIG_DIR)"
-init mock-nv "$DAINT_URL" "$MOCK_NV_CLIENT_ID" "$MOCK_NV_CLIENT_SECRET"
-init mock-amd "$DAINT_URL" "$MOCK_AMD_CLIENT_ID" "$MOCK_AMD_CLIENT_SECRET"
-case "$(stored_client)" in
-    "$MOCK_AMD_CLIENT_ID") echo "  keyring now holds mock-amd's client: mock-nv's credentials were silently overwritten" ;;
-    "$MOCK_NV_CLIENT_ID") echo "  keyring holds mock-nv's client" ;;
-    *) echo "  keyring holds neither client" ;;
-esac
+whose_client() {
+    case "$(stored_client)" in
+        "$MOCK_NV_CLIENT_ID") echo "the daint app" ;;
+        "${CLARIDEN_CLIENT_ID:-unset}") echo "the Clariden app" ;;
+        *) echo "neither app" ;;
+    esac
+}
 
-echo "2. Launch on the configured instance's own system"
-render mock-nv daint
+echo "1. One sml config per instance"
+init daint "$DAINT_URL" "$MOCK_NV_CLIENT_ID" "$MOCK_NV_CLIENT_SECRET"
+render daint daint normal "$HACKATHON_ACCOUNT"
+if [[ -z "${CLARIDEN_CLIENT_ID:-}" ]]; then
+    echo "  CLARIDEN_CLIENT_ID not set: skipping the cross-instance steps"
+    exit 0
+fi
+init clariden "$CLARIDEN_URL" "$CLARIDEN_CLIENT_ID" "$CLARIDEN_CLIENT_SECRET"
+render clariden clariden normal "${CLARIDEN_ACCOUNT:-}"
 
-echo "3. Name a system served by another instance"
-render mock-nv clariden
-render mock-nv beverin
+echo "2. Switch back to daint without re-running init"
+echo "  keyring now holds $(whose_client)'s credentials (one slot for every config)"
+render daint daint normal "$HACKATHON_ACCOUNT"
 
-echo "4. Point sml at the other real instances (sml's default URL is Clariden's /ml/)"
-init clariden "$CLARIDEN_URL" "$MOCK_NV_CLIENT_ID" "$MOCK_NV_CLIENT_SECRET"
-render clariden clariden
-init beverin "$BEVERIN_URL" "$MOCK_NV_CLIENT_ID" "$MOCK_NV_CLIENT_SECRET"
-render beverin beverin
+echo "3. Switching properly: re-init each time"
+init daint "$DAINT_URL" "$MOCK_NV_CLIENT_ID" "$MOCK_NV_CLIENT_SECRET"
+render daint daint normal "$HACKATHON_ACCOUNT"
+init clariden "$CLARIDEN_URL" "$CLARIDEN_CLIENT_ID" "$CLARIDEN_CLIENT_SECRET"
+render clariden clariden normal "${CLARIDEN_ACCOUNT:-}"
+
+echo "4. Name the other instance's system from a config"
+render clariden daint normal
+render clariden beverin mi300
+
+echo "5. Beverin's instance with the Clariden app"
+init beverin "$BEVERIN_URL" "$CLARIDEN_CLIENT_ID" "$CLARIDEN_CLIENT_SECRET"
+render beverin beverin mi300 "${CLARIDEN_ACCOUNT:-}"
