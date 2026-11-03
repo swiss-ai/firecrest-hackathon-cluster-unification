@@ -63,6 +63,9 @@ class ClusterRouter:
     def client(self, profile: ClusterProfile) -> Any:
         return self._pool.get(profile)
 
+    async def aclose(self) -> None:
+        await self._pool.aclose()
+
     async def health(self, profiles: Iterable[ClusterProfile]) -> list[Health]:
         return list(await asyncio.gather(*(self._check(profile) for profile in profiles)))
 
