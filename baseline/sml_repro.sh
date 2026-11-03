@@ -33,7 +33,9 @@ ENV_TOML="$SML_REPO/src/swiss_ai_model_launch/assets/envs/sglang_base.toml"
 SANDBOX=$(mktemp -d -t sml-repro-XXXX)
 trap 'rm -rf "$SANDBOX"' EXIT
 export PYTHON_KEYRING_BACKEND=keyrings.alt.file.PlaintextKeyring XDG_DATA_HOME="$SANDBOX/keyring"
-export SML_SWISSAI_RESEARCH_API_KEY=unused SML_CLUSTER_SSH_HOST=
+# Rendering never calls the serving API, so its key is a dummy. Older sml builds
+# call the same setting cscs_api_key, so both names are set.
+export SML_SWISSAI_RESEARCH_API_KEY=unused SML_CSCS_API_KEY=unused SML_CLUSTER_SSH_HOST=
 
 # sml gets its own environment: UV_PROJECT_ENVIRONMENT, if set for this repo, would
 # otherwise apply to the sml checkout too, and the checkout's .venv may belong to
