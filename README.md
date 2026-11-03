@@ -27,6 +27,9 @@ This repo:
    # optional second, real instance: an app subscribed to the ML platform (Clariden)
    export CLARIDEN_CLIENT_ID=... CLARIDEN_CLIENT_SECRET=...
    export CLARIDEN_ACCOUNT=infra01 CLARIDEN_SCRATCH=/capstor/scratch/cscs/<user>
+   # optional third instance: an app subscribed to Beverin (AMD MI300)
+   export BEVERIN_CLIENT_ID=... BEVERIN_CLIENT_SECRET=...
+   export BEVERIN_ACCOUNT=infra01 BEVERIN_SCRATCH=/capstor/scratch/cscs/<user>
    ```
 
    Every cluster in `clusters.toml` must have its variables set; remove a cluster's table if you

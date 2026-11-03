@@ -26,6 +26,12 @@ Run on 2026-11-03 (main `dc10d59`, PR `a3f6093`), nothing submitted:
 
 A shows that nothing changes for anyone who does not add a system; B is the improvement.
 
+**On Beverin.** With an app subscribed to Beverin's instance: `sml init` for Clariden, then
+`sml init --system beverin`; `sml advanced --output-script` alternated twice between
+`--system beverin --partition mi300` (`sglang_rocm.toml`) and `--system clariden --partition debug`,
+all successful, with no credential environment variables set. The rendered Beverin job targets
+`--partition=mi300` with the ROCm environment.
+
 ## Downsides and limits
 
 - **Hard-coded instance URLs.** If CSCS moves an instance, `sml` needs a release; until then
@@ -36,5 +42,5 @@ A shows that nothing changes for anyone who does not add a system; B is the impr
   environment variables instead.
 - **Still one Developer Portal subscription per instance**; only CSCS can change that.
 - **More code**: one module (~170 lines), one init flow (~70 lines), and their tests.
-- **Not exercised on Beverin** (no app subscribed to it during the hackathon) and not with a real
-  submission (rendering goes through the same FirecREST client and calls up to `sbatch`).
+- **No real submission** through the PR: rendering goes through the same FirecREST client and calls
+  up to `sbatch`.

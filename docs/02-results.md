@@ -41,6 +41,16 @@ completed    clariden     clariden:3842841         306.7s  COMPLETED
 and has since been removed; `mc` waits like the per-cluster workflow. The first attempt still shows
 per-cluster isolation: daint's result arrived after 13 s regardless of Clariden's queue.
 
+With a third app, subscribed to Beverin's instance, the registry covers all three instances:
+
+```
+$ uv run mc doctor
+up   mock-nv        0.34s  daint via https://api.cscs.ch/hpc/firecrest/v2
+up   mock-amd       0.26s  daint via https://api.cscs.ch/hpc/firecrest/v2
+up   clariden       0.20s  clariden via https://api.cscs.ch/ml/firecrest/v2
+up   beverin        0.15s  beverin via https://api.svc.cscs.ch/beverin/firecrest/v2
+```
+
 What does **not** change: each instance still needs an app subscribed to it. `mc` removes the
 switching, not the one-time access setup; a single endpoint for all clusters is a CSCS-side change.
 
