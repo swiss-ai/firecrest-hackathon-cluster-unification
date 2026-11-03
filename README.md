@@ -27,11 +27,16 @@ This repo:
    ```
 
 3. `cp clusters.example.toml clusters.toml`
+4. If the checkout's `.venv` was created by another user, use your own:
+   `export UV_PROJECT_ENVIRONMENT="$HOME/.venvs/firecrest-hackathon"`
 
 ## Usage
 
 ```bash
-# Baseline: one cluster at a time, environment swapped in between
+# Today's workflow with the real sml (step 1)
+baseline/sml_repro.sh /path/to/model-launch
+
+# Script baseline: one cluster at a time, environment swapped in between
 baseline/run_all.sh
 
 # Unified
