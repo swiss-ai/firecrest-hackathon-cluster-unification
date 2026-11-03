@@ -69,6 +69,7 @@ class ClusterJobs:
             env_vars=env,
             account=self._profile.account,
             partition=self._profile.partition,
+            reservation=self._profile.reservation,
         )
         return QualifiedJobId(self._profile.name, str(report["jobId"]))
 

@@ -73,6 +73,7 @@ async def main() -> int:
         env_vars=job_env,
         account=os.environ.get("FIRECREST_ACCOUNT"),
         partition=os.environ.get("FIRECREST_PARTITION"),
+        reservation=os.environ.get("FIRECREST_RESERVATION") or None,
     )
     job_id = str(report["jobId"])
     state = await _wait_for_end(client, system, job_id)

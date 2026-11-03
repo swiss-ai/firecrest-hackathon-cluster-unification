@@ -51,6 +51,7 @@ class ClusterProfile(BaseModel):
     working_dir: str
     partition: str | None = None
     account: str | None = None
+    reservation: str | None = None
     mock: bool = Field(default=False, description="Tell jobs which arch this cluster pretends to be.")
     fault_rate: float = Field(default=0.0, ge=0.0, le=1.0, description="Share of requests answered 503.")
 

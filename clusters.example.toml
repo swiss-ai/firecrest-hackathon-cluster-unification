@@ -11,6 +11,7 @@ client_secret_env = "MOCK_NV_CLIENT_SECRET"
 system = "daint"
 partition = "normal"
 account = "${HACKATHON_ACCOUNT}"
+reservation = "firecrest"  # the hackathon's; without it jobs wait in the normal queue
 working_dir = "${HACKATHON_SCRATCH}"
 mock = true
 
@@ -23,6 +24,7 @@ client_secret_env = "MOCK_AMD_CLIENT_SECRET"
 system = "daint"
 partition = "normal"
 account = "${HACKATHON_ACCOUNT}"
+reservation = "firecrest"  # the hackathon's; without it jobs wait in the normal queue
 working_dir = "${HACKATHON_SCRATCH}"
 mock = true
 fault_rate = 0.0

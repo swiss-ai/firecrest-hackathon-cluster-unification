@@ -38,13 +38,14 @@ def test_state_detail_is_dropped() -> None:
 
 async def test_submit_sends_the_clusters_variant_and_settings() -> None:
     client = FakeFirecrest()
-    nv = profile("mock-nv", Arch.NVIDIA, partition="normal", account="hack01", mock=True)
+    nv = profile("mock-nv", Arch.NVIDIA, partition="normal", account="hack01", reservation="resv", mock=True)
     job = await ClusterJobs(nv, client).submit(SPEC)
 
     assert job.cluster == "mock-nv"
     (sent,) = client.submitted
     assert sent["env_vars"] == {"IMAGE_ARCH": "nvidia", "MOCK_CLUSTER_ARCH": "nvidia"}
     assert (sent["system_name"], sent["partition"], sent["account"]) == ("daint", "normal", "hack01")
+    assert sent["reservation"] == "resv"
     assert sent["script_str"] == SCRIPT.read_text()
 
 
