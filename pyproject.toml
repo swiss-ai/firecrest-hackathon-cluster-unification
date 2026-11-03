@@ -1,0 +1,46 @@
+[project]
+name = "multicluster"
+version = "0.1.0"
+description = "One entry point for running FirecREST jobs across Alps clusters with separate instances and architectures."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "pyfirecrest>=3.9.0",
+  "pydantic>=2.7",
+  "tomli>=2.0; python_version < '3.11'",
+]
+
+[project.scripts]
+mc = "multicluster.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8", "pytest-asyncio>=0.23", "ruff>=0.6", "mypy>=1.11"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/multicluster"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "SIM", "RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101"]
+
+[tool.mypy]
+strict = true
+files = ["src"]
+
+[[tool.mypy.overrides]]
+module = ["firecrest", "firecrest.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
