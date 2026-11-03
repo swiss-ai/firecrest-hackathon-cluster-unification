@@ -13,6 +13,41 @@ This repo:
 2. embeds a cluster-aware routing layer in a small experiment tool, `mc` (`src/multicluster/`);
 3. measures the difference (`bench/`, `docs/02-results.md`).
 
+## Setup
+
+1. Create two applications in the [CSCS Developer Portal](https://developer.svc.cscs.ch/devportal/apis),
+   one per mock cluster, both subscribed to daint's FirecREST.
+2. Export their credentials and your hackathon account details (never commit them):
+
+   ```bash
+   export MOCK_NV_CLIENT_ID=...  MOCK_NV_CLIENT_SECRET=...
+   export MOCK_AMD_CLIENT_ID=... MOCK_AMD_CLIENT_SECRET=...
+   export HACKATHON_ACCOUNT=...                       # Slurm account
+   export HACKATHON_SCRATCH=/capstor/scratch/cscs/$USER # job working directory
+   ```
+
+3. `cp clusters.example.toml clusters.toml`
+
+## Usage
+
+```bash
+# Baseline: one cluster at a time, environment swapped in between
+baseline/run_all.sh
+
+# Unified
+uv run mc doctor
+uv run mc run jobs/probe.toml                       # every cluster, its own variant each
+uv run mc run jobs/probe.toml --arch amd            # wherever the architecture fits
+uv run mc run jobs/probe-cuda-only.toml             # AMD cluster rejected before submission
+uv run mc run jobs/probe.toml --fault mock-amd=0.3  # flaky AMD instance
+uv run mc status mock-amd:12345
+
+# Both, on the same scenarios
+uv run python bench/measure.py
+```
+
+See [docs/03-challenges.md](docs/03-challenges.md) for what routing across architectures has to handle.
+
 ## Development
 
 ```bash
