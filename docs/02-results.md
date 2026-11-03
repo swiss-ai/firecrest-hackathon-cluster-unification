@@ -1,7 +1,8 @@
 # 2. Results: one registry instead of one config per instance
 
-Run on 2026-11-03. Raw data: `results/raw/20261103T142002.json` (all scenarios) and
-`results/raw/20261103T142145.json` (flaky and outage, re-run after a benchmark bug; see below).
+Run on 2026-11-03. Raw data in `results/raw/`: `20261103T142002.json` (all scenarios),
+`20261103T142145.json` (flaky and outage, re-run after a benchmark bug), `20261103T144647.json`
+(happy and outage, after removing the pre-submit health check).
 
 ## The URL and login split
 
@@ -23,6 +24,22 @@ up   mock-amd       0.16s  daint via https://api.cscs.ch/hpc/firecrest/v2
 up   clariden       0.10s  clariden via https://api.cscs.ch/ml/firecrest/v2
 ```
 
+A real job on both instances, one command (daint with the hackathon app, Clariden `debug` with the
+Swiss AI app, account `infra01`):
+
+```
+$ uv run mc run jobs/probe.toml --clusters mock-nv,clariden --max-wait 300
+completed    mock-nv      mock-nv:5246314           13.4s  COMPLETED
+timed-out    clariden     clariden:3842798         310.0s  clariden:3842798 still PENDING after 303 s; cancelled
+
+$ uv run mc run jobs/probe.toml --clusters mock-nv,clariden --max-wait 300    # second try
+completed    mock-nv      mock-nv:5246357           12.6s  COMPLETED
+completed    clariden     clariden:3842841         306.7s  COMPLETED
+```
+
+The first attempt shows the busy Clariden queue handled per cluster: daint's result arrived after
+13 s, and Clariden's job was cancelled at the limit instead of waiting indefinitely.
+
 What does **not** change: each instance still needs an app subscribed to it. `mc` removes the
 switching, not the one-time access setup; a single endpoint for all clusters is a CSCS-side change.
 
@@ -33,9 +50,9 @@ Same probe job on the two mock clusters (daint, reservation `firecrest`), baseli
 
 | Scenario | Baseline | `mc` | Why |
 |---|---|---|---|
-| Both healthy | both completed, **26.6 s** | both completed, **11.7 s** | `mc` runs clusters concurrently; total = slowest cluster, not the sum. |
+| Both healthy | both completed, **26.6 s** / 30.7 s | both completed, **11.7 s** / 12.3 s | `mc` runs clusters concurrently; total = slowest cluster, not the sum. |
 | CUDA-only job to the AMD cluster | AMD job accepted, ran and **failed after 32 s** on a node; 44.6 s total | AMD **rejected in 0.0 s before submission** (`no amd variant`); NVIDIA completed; 12.8 s total | The job spec declares its variants per architecture; no node is spent on a job that cannot run. |
-| AMD instance down (every request 503) | AMD **crashed with a traceback**; 12.0 s | AMD `unreachable: instance unhealthy (503)`; NVIDIA completed; **31.6 s** | `mc` reports the failure per cluster in words, but its health check retries with backoff (1+2+4+8+16 s) before giving up, so the run ends later. NVIDIA's result was not delayed. |
+| AMD instance down (every request 503) | AMD **crashed with a traceback**; 12.5 s | AMD `unreachable: submit failed: instance unhealthy (503)`; NVIDIA completed; **13.3 s** | Same speed, failure reported per cluster in words. (A first version ran a health check before submitting, which retried with backoff and took 31.6 s; it was removed so that `mc run` sends exactly the baseline's requests.) |
 | AMD instance flaky (30 % 503) | completed (27.6 s) | AMD `unreachable: submit failed: instance unhealthy (503)` | **Inconclusive**: a single random run. Neither tool retries a submit (FirecREST can fail an sbatch that went through, so a blind retry may duplicate the job), so each succeeds ~70 % of the time. `mc` only makes the failure readable. |
 
 ## Caveats
@@ -48,4 +65,4 @@ Same probe job on the two mock clusters (daint, reservation `firecrest`), baseli
 - Improving the flaky case would need submit-or-adopt (look the job up by name after a failed
   submit, as `sml`'s `_submit_or_adopt` does). That is a retry-policy improvement, not part of the
   URL unification, and is left out of the minimal version.
-- The outage delay could be cut by giving the health check a shorter retry budget than job calls.
+- Known weaknesses and next steps are collected in [04-future-work.md](04-future-work.md).
