@@ -62,7 +62,8 @@ Step 4, the same idea inside `sml`: [swiss-ai/model-launch#279](https://github.c
 (draft), an optional `~/.sml/clusters.yml` mapping systems to their own FirecREST instance.
 
 Write-ups: [step 1](docs/01-reproduction.md), [step 2](docs/02-results.md),
-[architecture challenges](docs/03-challenges.md), [known weaknesses](docs/04-future-work.md).
+[architecture challenges](docs/03-challenges.md), [known weaknesses](docs/04-future-work.md),
+[the sml PR and its proof](docs/05-sml-pr.md).
 
 ## Development
 
