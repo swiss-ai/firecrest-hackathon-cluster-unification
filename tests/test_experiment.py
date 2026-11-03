@@ -74,3 +74,12 @@ async def test_a_job_that_ends_badly_is_failed_with_its_state() -> None:
     (result,) = await run_on_clusters(router, _spec(Arch.NVIDIA), router.select(["mock-nv"]), poll_sec=0)
 
     assert (result.outcome, result.detail) == (Outcome.FAILED, "TIMEOUT")
+
+
+async def test_runs_send_no_requests_beyond_the_per_cluster_workflow() -> None:
+    nv = FakeFirecrest()
+    router = _router({"mock-nv": nv, "mock-amd": FakeFirecrest()})
+
+    await run_on_clusters(router, _spec(Arch.NVIDIA), router.select(["mock-nv"]), poll_sec=0)
+
+    assert nv.systems_calls == 0

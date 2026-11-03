@@ -45,6 +45,7 @@ class FakeFirecrest:
         self._polls_until_done = polls_until_done
         self._fail_with = fail_with
         self.submitted: list[dict[str, Any]] = []
+        self.systems_calls = 0
         self._polls: dict[str, int] = {}
 
     def _maybe_fail(self) -> None:
@@ -52,6 +53,7 @@ class FakeFirecrest:
             raise self._fail_with()
 
     async def systems(self) -> list[dict[str, Any]]:
+        self.systems_calls += 1
         self._maybe_fail()
         return [{"name": name} for name in self._systems]
 

@@ -1,8 +1,12 @@
 """Run one job on several clusters at once and report per cluster.
 
-Each cluster goes through the same steps (architecture check, health check,
-submit, wait, read output) independently; whatever happens on one cluster is
-recorded in its result and never stops the others.
+Each cluster goes through the same steps (architecture check, submit, wait,
+read output) independently; whatever happens on one cluster is recorded in its
+result and never stops the others.
+
+A cluster gets exactly the FirecREST requests the per-cluster workflow sends
+(no extra health check), so an unhealthy instance fails as fast as it does
+today and a flaky one has no additional requests to fail on.
 """
 
 import asyncio
@@ -63,10 +67,6 @@ async def _run_on_cluster(
         spec.variant_for(profile.arch)
     except NoVariantError as exc:
         return result(Outcome.REJECTED, str(exc))
-
-    (health,) = await router.health([profile])
-    if not health.up:
-        return result(Outcome.UNREACHABLE, health.detail)
 
     jobs = ClusterJobs(profile, router.client(profile), poll_sec)
     try:
