@@ -45,12 +45,6 @@ class WaitTimeout(TimeoutError):
         self.last_state = last_state
 
 
-def parse_reason(jobs: list[dict[str, Any]]) -> str | None:
-    """Why Slurm keeps a job in its state (e.g. ``Priority``), if it says."""
-    reason = str((jobs[0].get("status") or {}).get("stateReason") or "") if jobs else ""
-    return reason if reason not in ("", "None") else None
-
-
 def parse_state(jobs: list[dict[str, Any]]) -> str:
     """The Slurm state of a ``job_info`` answer; a job not listed yet is pending."""
     if not jobs:
@@ -89,23 +83,17 @@ class ClusterJobs:
         return QualifiedJobId(self._profile.name, str(report["jobId"]))
 
     async def state(self, job: QualifiedJobId) -> str:
-        return parse_state(await self._job_info(job))
-
-    async def _job_info(self, job: QualifiedJobId) -> list[dict[str, Any]]:
         system = self._profile.system
-        jobs: list[dict[str, Any]] = await with_retry(
-            lambda: self._client.job_info(system_name=system, jobid=job.job_id)
-        )
-        return jobs
+        jobs = await with_retry(lambda: self._client.job_info(system_name=system, jobid=job.job_id))
+        return parse_state(jobs)
 
     async def wait(self, job: QualifiedJobId, max_wait_sec: float | None = None) -> str:
         """Poll until the job ends; with ``max_wait_sec``, raise ``WaitTimeout`` past it."""
         started = time.monotonic()
-        while (state := parse_state(info := await self._job_info(job))) not in TERMINAL_STATES:
+        while (state := await self.state(job)) not in TERMINAL_STATES:
             waited = time.monotonic() - started
             if max_wait_sec is not None and waited >= max_wait_sec:
-                reason = parse_reason(info)
-                raise WaitTimeout(job, waited, f"{state} ({reason})" if reason else state)
+                raise WaitTimeout(job, waited, state)
             await asyncio.sleep(self._poll_sec)
         return state
 
