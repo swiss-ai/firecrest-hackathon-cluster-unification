@@ -11,6 +11,8 @@ ENV = {
     "HACKATHON_SCRATCH": "/capstor/scratch/cscs/me",
     "CLARIDEN_ACCOUNT": "infra01",
     "CLARIDEN_SCRATCH": "/capstor/scratch/cscs/me",
+    "BEVERIN_ACCOUNT": "infra01",
+    "BEVERIN_SCRATCH": "/capstor/scratch/cscs/me",
 }
 
 
@@ -26,12 +28,13 @@ def _table(**overrides: object) -> dict[str, object]:
     return {**table, **overrides}
 
 
-def test_example_config_defines_the_mock_clusters_and_clariden() -> None:
+def test_example_config_defines_the_mock_clusters_and_the_real_ones() -> None:
     profiles = load_profiles(EXAMPLE, ENV)
     assert {name: p.arch for name, p in profiles.items()} == {
         "mock-nv": Arch.NVIDIA,
         "mock-amd": Arch.AMD,
         "clariden": Arch.NVIDIA,
+        "beverin": Arch.AMD,
     }
     assert profiles["clariden"].firecrest_url != profiles["mock-nv"].firecrest_url
     assert profiles["mock-amd"].account == "hack01"

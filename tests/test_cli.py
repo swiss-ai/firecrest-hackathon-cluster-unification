@@ -22,10 +22,13 @@ def fake_clusters(monkeypatch: pytest.MonkeyPatch) -> dict[str, FakeFirecrest]:
     monkeypatch.setenv("HACKATHON_SCRATCH", "/scratch")
     monkeypatch.setenv("CLARIDEN_ACCOUNT", "infra01")
     monkeypatch.setenv("CLARIDEN_SCRATCH", "/scratch")
+    monkeypatch.setenv("BEVERIN_ACCOUNT", "infra01")
+    monkeypatch.setenv("BEVERIN_SCRATCH", "/scratch")
     clients = {
         "mock-nv": FakeFirecrest(),
         "mock-amd": FakeFirecrest(),
         "clariden": FakeFirecrest(systems=["clariden", "bristen"]),
+        "beverin": FakeFirecrest(systems=["beverin"]),
     }
 
     def factory(profile: ClusterProfile, env: Mapping[str, str]) -> Any:
@@ -49,6 +52,7 @@ def test_run_on_every_cluster(
         ("mock-nv", "completed"),
         ("mock-amd", "completed"),
         ("clariden", "completed"),
+        ("beverin", "completed"),
     ]
     assert all(r["job"].startswith(r["cluster"] + ":") for r in results)
 
@@ -58,7 +62,7 @@ def test_run_by_arch_only_touches_matching_clusters(
 ) -> None:
     code, results = _run_json(capsys, PROBE, "--arch", "amd")
     assert code == 0
-    assert [r["cluster"] for r in results] == ["mock-amd"]
+    assert [r["cluster"] for r in results] == ["mock-amd", "beverin"]
     assert fake_clusters["mock-nv"].submitted == []
 
 
@@ -71,6 +75,7 @@ def test_cuda_only_job_is_rejected_on_the_amd_cluster(
         "mock-nv": "completed",
         "mock-amd": "rejected",
         "clariden": "completed",
+        "beverin": "rejected",
     }
 
 
@@ -102,5 +107,5 @@ def test_status_needs_a_qualified_job_id(
 def test_fault_flag_must_name_a_known_cluster(
     fake_clusters: dict[str, FakeFirecrest], capsys: pytest.CaptureFixture[str]
 ) -> None:
-    assert cli.main(["--config", EXAMPLE, "--fault", "beverin=0.5", "doctor"]) == 2
-    assert "unknown cluster 'beverin'" in capsys.readouterr().err
+    assert cli.main(["--config", EXAMPLE, "--fault", "santis=0.5", "doctor"]) == 2
+    assert "unknown cluster 'santis'" in capsys.readouterr().err

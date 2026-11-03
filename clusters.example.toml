@@ -41,12 +41,13 @@ partition = "debug"  # small probe jobs; normal is often busy
 account = "${CLARIDEN_ACCOUNT}"
 working_dir = "${CLARIDEN_SCRATCH}"
 
-# Beverin, for when an app is subscribed to its instance (values as in model-launch-factory).
-# [clusters.beverin]
-# arch = "amd"
-# firecrest_url = "https://api.svc.cscs.ch/beverin/firecrest/v2"
-# client_id_env = "BEVERIN_CLIENT_ID"
-# client_secret_env = "BEVERIN_CLIENT_SECRET"
-# system = "beverin"
-# partition = "mi300"
-# working_dir = "${BEVERIN_SCRATCH}"
+# Beverin (AMD MI300), the third instance, through a Swiss AI app subscribed to it.
+[clusters.beverin]
+arch = "amd"
+firecrest_url = "https://api.svc.cscs.ch/beverin/firecrest/v2"
+client_id_env = "BEVERIN_CLIENT_ID"
+client_secret_env = "BEVERIN_CLIENT_SECRET"
+system = "beverin"
+partition = "mi300"
+account = "${BEVERIN_ACCOUNT}"
+working_dir = "${BEVERIN_SCRATCH}"
