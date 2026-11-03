@@ -24,7 +24,13 @@ This repo:
    export MOCK_AMD_CLIENT_ID=... MOCK_AMD_CLIENT_SECRET=...
    export HACKATHON_ACCOUNT=...                       # Slurm account
    export HACKATHON_SCRATCH=/capstor/scratch/cscs/$USER # job working directory
+   # optional second, real instance: an app subscribed to the ML platform (Clariden)
+   export CLARIDEN_CLIENT_ID=... CLARIDEN_CLIENT_SECRET=...
+   export CLARIDEN_ACCOUNT=infra01 CLARIDEN_SCRATCH=/capstor/scratch/cscs/<user>
    ```
+
+   Every cluster in `clusters.toml` must have its variables set; remove a cluster's table if you
+   do not use it.
 
 3. `cp clusters.example.toml clusters.toml`
 4. If the checkout's `.venv` was created by another user, use your own:
@@ -44,14 +50,16 @@ uv run mc doctor
 uv run mc run jobs/probe.toml                       # every cluster, its own variant each
 uv run mc run jobs/probe.toml --arch amd            # wherever the architecture fits
 uv run mc run jobs/probe-cuda-only.toml             # AMD cluster rejected before submission
-uv run mc run jobs/probe.toml --fault mock-amd=0.3  # flaky AMD instance
+uv run mc run jobs/probe.toml --clusters mock-nv,clariden --max-wait 300  # two real instances
+uv run mc --fault mock-amd=0.3 run jobs/probe.toml  # flaky AMD instance
 uv run mc status mock-amd:12345
 
 # Both, on the same scenarios
 uv run python bench/measure.py
 ```
 
-See [docs/03-challenges.md](docs/03-challenges.md) for what routing across architectures has to handle.
+Write-ups: [step 1](docs/01-reproduction.md), [step 2](docs/02-results.md),
+[architecture challenges](docs/03-challenges.md), [known weaknesses](docs/04-future-work.md).
 
 ## Development
 
