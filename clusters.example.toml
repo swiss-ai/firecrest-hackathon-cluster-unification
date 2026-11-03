@@ -37,7 +37,7 @@ firecrest_url = "https://api.cscs.ch/ml/firecrest/v2"
 client_id_env = "CLARIDEN_CLIENT_ID"
 client_secret_env = "CLARIDEN_CLIENT_SECRET"
 system = "clariden"
-partition = "normal"
+partition = "debug"  # small probe jobs; normal is often busy
 account = "${CLARIDEN_ACCOUNT}"
 working_dir = "${CLARIDEN_SCRATCH}"
 
