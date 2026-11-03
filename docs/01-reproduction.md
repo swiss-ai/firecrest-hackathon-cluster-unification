@@ -14,7 +14,7 @@ and Beverin are today:
 
 ```bash
 set -a; source .env; set +a
-baseline/sml_repro.sh /path/to/model-launch     # ~40 s, nothing is submitted
+baseline/sml_repro.sh ~/Projects/model-launch     # your checkout; ~1 min, nothing is submitted
 ```
 
 `sml advanced --output-script` performs the whole FirecREST part of a launch (token, system list,

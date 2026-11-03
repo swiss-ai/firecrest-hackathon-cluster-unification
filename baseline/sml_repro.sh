@@ -18,6 +18,10 @@
 set -uo pipefail
 
 SML_REPO=${1:?usage: $0 /path/to/model-launch}
+if [[ ! -f "$SML_REPO/pyproject.toml" ]] || ! grep -q swiss-ai-model-launch "$SML_REPO/pyproject.toml"; then
+    echo "$SML_REPO is not a checkout of swiss-ai/model-launch" >&2
+    exit 2
+fi
 : "${MOCK_NV_CLIENT_ID:?source .env first}" "${MOCK_NV_CLIENT_SECRET:?}" "${HACKATHON_ACCOUNT:?}"
 
 DAINT_URL=https://api.cscs.ch/hpc/firecrest/v2
@@ -31,13 +35,23 @@ trap 'rm -rf "$SANDBOX"' EXIT
 export PYTHON_KEYRING_BACKEND=keyrings.alt.file.PlaintextKeyring XDG_DATA_HOME="$SANDBOX/keyring"
 export SML_SWISSAI_RESEARCH_API_KEY=unused SML_CLUSTER_SSH_HOST=
 
-sml() { uv run --project "$SML_REPO" sml "$@" </dev/null; }
+# sml gets its own environment: UV_PROJECT_ENVIRONMENT, if set for this repo, would
+# otherwise apply to the sml checkout too, and the checkout's .venv may belong to
+# another user. Persistent per user, so only the first run installs sml.
+SML_VENV=${SML_VENV:-$HOME/.venvs/sml-repro}
+sml_uv() { UV_PROJECT_ENVIRONMENT="$SML_VENV" uv run --quiet --project "$SML_REPO" "$@" </dev/null; }
+sml() { sml_uv sml "$@"; }
 
 # One `sml init` per cluster: URL, token URI, client ID, client secret.
 init() {
     local config=$1 url=$2 client_id=$3 client_secret=$4
-    SML_CONFIG_DIR="$SANDBOX/$config" SML_FIRECREST_CLIENT_ID=$client_id SML_FIRECREST_CLIENT_SECRET=$client_secret \
-        sml init --launcher firecrest --firecrest-url "$url" --firecrest-token-uri "$TOKEN_URI" >/dev/null 2>&1
+    local out
+    if ! out=$(SML_CONFIG_DIR="$SANDBOX/$config" SML_FIRECREST_CLIENT_ID=$client_id \
+        SML_FIRECREST_CLIENT_SECRET=$client_secret \
+        sml init --launcher firecrest --firecrest-url "$url" --firecrest-token-uri "$TOKEN_URI" 2>&1); then
+        echo "  sml init $config failed: $(tail -1 <<<"$out")" >&2
+        exit 1
+    fi
     echo "  sml init $config ($url)"
 }
 
@@ -53,12 +67,15 @@ render() {
         --system "$system" --partition "$partition" "${extra[@]}" \
         --output-script "$SANDBOX/out-$config-$system" 2>&1)
     code=$?
+    local summary
+    summary=$(grep -E "Error|Exception|Wrote" <<<"$out" | tail -1)
+    [[ -n "$summary" ]] || summary=$(tail -1 <<<"$out")
     printf '  [%s config -> %s] exit=%s %ss  %s\n' "$config" "$system" "$code" $((SECONDS - started)) \
-        "$(grep -E "Error|Exception|Wrote" <<<"$out" | tail -1 | cut -c1-170)"
+        "${summary:0:170}"
 }
 
 stored_client() {
-    uv run --project "$SML_REPO" python -c \
+    sml_uv python -c \
         'import keyring; print(keyring.get_password("swiss_ai_model_launch", "firecrest_client_id"))'
 }
 

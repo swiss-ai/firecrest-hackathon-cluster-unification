@@ -34,7 +34,7 @@ This repo:
 
 ```bash
 # Today's workflow with the real sml (step 1)
-baseline/sml_repro.sh /path/to/model-launch
+baseline/sml_repro.sh ~/Projects/model-launch   # your swiss-ai/model-launch checkout
 
 # Script baseline: one cluster at a time, environment swapped in between
 baseline/run_all.sh
