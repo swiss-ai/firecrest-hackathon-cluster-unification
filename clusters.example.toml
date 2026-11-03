@@ -1,0 +1,47 @@
+# Copy to clusters.toml (gitignored). One table per cluster; callers use the table name.
+# ${VAR} is read from the environment, and must be set. Secrets are never written
+# here: client_id_env / client_secret_env name the variables that hold them.
+
+# Mock "Clariden": NVIDIA, its own OIDC client.
+[clusters.mock-nv]
+arch = "nvidia"
+firecrest_url = "https://api.cscs.ch/hpc/firecrest/v2"
+client_id_env = "MOCK_NV_CLIENT_ID"
+client_secret_env = "MOCK_NV_CLIENT_SECRET"
+system = "daint"
+partition = "normal"
+account = "${HACKATHON_ACCOUNT}"
+working_dir = "${HACKATHON_SCRATCH}"
+mock = true
+
+# Mock "Beverin": AMD, a separate OIDC client, an instance that is sometimes unhealthy.
+[clusters.mock-amd]
+arch = "amd"
+firecrest_url = "https://api.cscs.ch/hpc/firecrest/v2"
+client_id_env = "MOCK_AMD_CLIENT_ID"
+client_secret_env = "MOCK_AMD_CLIENT_SECRET"
+system = "daint"
+partition = "normal"
+account = "${HACKATHON_ACCOUNT}"
+working_dir = "${HACKATHON_SCRATCH}"
+mock = true
+fault_rate = 0.0
+
+# The real clusters, for when credentials exist (values as in model-launch-factory).
+# [clusters.clariden]
+# arch = "nvidia"
+# firecrest_url = "https://api.cscs.ch/ml/firecrest/v2"
+# client_id_env = "CLARIDEN_CLIENT_ID"
+# client_secret_env = "CLARIDEN_CLIENT_SECRET"
+# system = "clariden"
+# partition = "normal"
+# working_dir = "${CLARIDEN_SCRATCH}"
+#
+# [clusters.beverin]
+# arch = "amd"
+# firecrest_url = "https://api.svc.cscs.ch/beverin/firecrest/v2"
+# client_id_env = "BEVERIN_CLIENT_ID"
+# client_secret_env = "BEVERIN_CLIENT_SECRET"
+# system = "beverin"
+# partition = "mi300"
+# working_dir = "${BEVERIN_SCRATCH}"
