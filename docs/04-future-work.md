@@ -19,8 +19,7 @@ today or out of scope for the minimal version.
 |---|---|---|
 | **One partition per profile** | Job types needing another partition (Clariden `xfer` for downloads, `debug` for tests) need another profile, so profiles multiply with job types. | Job specs request a partition *kind* (`gpu`, `xfer`, `debug`); profiles map kinds to their own partition names. |
 | **No queue-aware choice** | `--arch amd` runs on *every* AMD cluster, not the least busy one. | Use FirecREST's partition and job listings to pick one. |
-| **Waiting is fixed** | `--max-wait` applies to the whole wait, queue and run alike; a long job can be cancelled while running. | Separate limits for pending and running time. |
-| **Pending reason lost on cancel** | Slurm forgets why a job waited once it is cancelled. | Now reported in the timeout message (`still PENDING (Priority) after …`); could also be shown live. |
+| **No wait limit** | As today, `mc run` waits until every job ends, however long a queue holds it. | An optional limit that cancels pending jobs (tried during the hackathon as `--max-wait`, removed to keep the minimal version small). |
 | **Sizing per architecture** | 4 × 96 GB (GH200) vs 4 × 128 GB (MI300A) per node changes node counts for a model. | Profile carries node memory; sizing (as in `model-launch-factory`) reads it. |
 | **Staging across clusters** | Working dirs and `$SCRATCH` are per cluster; capstor is shared. | Stage per profile; reuse capstor where both clusters see it. |
 | **`sml`, `evals-svc`, factory** | Each still has its own per-cluster configuration. | Step 4: bring the registry into `sml` first; the others can then reuse it. |

@@ -50,7 +50,7 @@ uv run mc doctor
 uv run mc run jobs/probe.toml                       # every cluster, its own variant each
 uv run mc run jobs/probe.toml --arch amd            # wherever the architecture fits
 uv run mc run jobs/probe-cuda-only.toml             # AMD cluster rejected before submission
-uv run mc run jobs/probe.toml --clusters mock-nv,clariden --max-wait 300  # two real instances
+uv run mc run jobs/probe.toml --clusters mock-nv,clariden  # two real instances (Clariden may queue)
 uv run mc --fault mock-amd=0.3 run jobs/probe.toml  # flaky AMD instance
 uv run mc status mock-amd:12345
 

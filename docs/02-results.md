@@ -37,8 +37,9 @@ completed    mock-nv      mock-nv:5246357           12.6s  COMPLETED
 completed    clariden     clariden:3842841         306.7s  COMPLETED
 ```
 
-The first attempt shows the busy Clariden queue handled per cluster: daint's result arrived after
-13 s, and Clariden's job was cancelled at the limit instead of waiting indefinitely.
+`--max-wait` was a temporary flag for testing on a busy Clariden (cancel the job after N seconds)
+and has since been removed; `mc` waits like the per-cluster workflow. The first attempt still shows
+per-cluster isolation: daint's result arrived after 13 s regardless of Clariden's queue.
 
 What does **not** change: each instance still needs an app subscribed to it. `mc` removes the
 switching, not the one-time access setup; a single endpoint for all clusters is a CSCS-side change.
