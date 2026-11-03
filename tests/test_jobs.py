@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from multicluster.arch import Arch
-from multicluster.jobs import ClusterJobs, QualifiedJobId, parse_state
+from multicluster.jobs import ClusterJobs, QualifiedJobId, parse_reason, parse_state
 from multicluster.spec import JobSpec, JobVariant, NoVariantError
 from tests.fakes import FakeFirecrest, profile
 
@@ -63,3 +63,9 @@ async def test_wait_polls_until_a_terminal_state_then_reads_output() -> None:
 
     assert await jobs.wait(job) == "COMPLETED"
     assert f"/scratch/mc-probe-{job.job_id}.out" in await jobs.output(SPEC, job)
+
+
+def test_reason_is_reported_only_when_slurm_gives_one() -> None:
+    assert parse_reason([{"status": {"state": "PENDING", "stateReason": "Priority"}}]) == "Priority"
+    assert parse_reason([{"status": {"state": "RUNNING", "stateReason": "None"}}]) is None
+    assert parse_reason([]) is None
