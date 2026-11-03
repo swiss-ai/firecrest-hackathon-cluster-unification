@@ -5,7 +5,6 @@ always a ``QualifiedJobId`` like ``mock-amd:12345``.
 """
 
 import asyncio
-import time
 from dataclasses import dataclass
 from pathlib import PurePosixPath
 from typing import Any
@@ -35,14 +34,6 @@ class QualifiedJobId:
         if not sep or not cluster or not job_id.isdigit():
             raise ValueError(f"expected <cluster>:<job id>, got {text!r}")
         return cls(cluster, job_id)
-
-
-class WaitTimeout(TimeoutError):
-    """A job did not reach a terminal state in time."""
-
-    def __init__(self, job: "QualifiedJobId", waited_sec: float, last_state: str) -> None:
-        super().__init__(f"{job} still {last_state} after {waited_sec:.0f} s")
-        self.last_state = last_state
 
 
 def parse_state(jobs: list[dict[str, Any]]) -> str:
@@ -87,13 +78,8 @@ class ClusterJobs:
         jobs = await with_retry(lambda: self._client.job_info(system_name=system, jobid=job.job_id))
         return parse_state(jobs)
 
-    async def wait(self, job: QualifiedJobId, max_wait_sec: float | None = None) -> str:
-        """Poll until the job ends; with ``max_wait_sec``, raise ``WaitTimeout`` past it."""
-        started = time.monotonic()
+    async def wait(self, job: QualifiedJobId) -> str:
         while (state := await self.state(job)) not in TERMINAL_STATES:
-            waited = time.monotonic() - started
-            if max_wait_sec is not None and waited >= max_wait_sec:
-                raise WaitTimeout(job, waited, state)
             await asyncio.sleep(self._poll_sec)
         return state
 
