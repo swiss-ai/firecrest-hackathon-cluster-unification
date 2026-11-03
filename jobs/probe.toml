@@ -1,0 +1,12 @@
+# The probe job, with a variant per architecture. IMAGE_ARCH stands in for
+# everything that differs between them in a real job: container image, env TOML,
+# framework build, kernels.
+name = "probe"
+script = "probe.sbatch"
+stdout = "mc-probe-{job_id}.out"
+
+[variants.nvidia.env]
+IMAGE_ARCH = "nvidia"
+
+[variants.amd.env]
+IMAGE_ARCH = "amd"

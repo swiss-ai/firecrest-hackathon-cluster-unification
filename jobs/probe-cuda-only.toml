@@ -1,0 +1,7 @@
+# The same probe, packaged for NVIDIA only, like most model recipes today.
+name = "probe-cuda-only"
+script = "probe.sbatch"
+stdout = "mc-probe-{job_id}.out"
+
+[variants.nvidia.env]
+IMAGE_ARCH = "nvidia"
