@@ -35,7 +35,7 @@ select = ["E", "F", "W", "I", "B", "UP", "S", "SIM", "RUF"]
 
 [tool.mypy]
 strict = true
-files = ["src", "baseline"]
+files = ["src", "baseline", "bench"]
 
 [[tool.mypy.overrides]]
 module = ["firecrest", "firecrest.*"]
