@@ -6,7 +6,12 @@ from multicluster.arch import Arch
 from multicluster.profiles import DEFAULT_TOKEN_URI, ProfileError, load_profiles, parse_profiles
 
 EXAMPLE = Path(__file__).resolve().parent.parent / "clusters.example.toml"
-ENV = {"HACKATHON_ACCOUNT": "hack01", "HACKATHON_SCRATCH": "/capstor/scratch/cscs/me"}
+ENV = {
+    "HACKATHON_ACCOUNT": "hack01",
+    "HACKATHON_SCRATCH": "/capstor/scratch/cscs/me",
+    "CLARIDEN_ACCOUNT": "infra01",
+    "CLARIDEN_SCRATCH": "/capstor/scratch/cscs/me",
+}
 
 
 def _table(**overrides: object) -> dict[str, object]:
@@ -21,9 +26,14 @@ def _table(**overrides: object) -> dict[str, object]:
     return {**table, **overrides}
 
 
-def test_example_config_defines_both_mock_clusters() -> None:
+def test_example_config_defines_the_mock_clusters_and_clariden() -> None:
     profiles = load_profiles(EXAMPLE, ENV)
-    assert {name: p.arch for name, p in profiles.items()} == {"mock-nv": Arch.NVIDIA, "mock-amd": Arch.AMD}
+    assert {name: p.arch for name, p in profiles.items()} == {
+        "mock-nv": Arch.NVIDIA,
+        "mock-amd": Arch.AMD,
+        "clariden": Arch.NVIDIA,
+    }
+    assert profiles["clariden"].firecrest_url != profiles["mock-nv"].firecrest_url
     assert profiles["mock-amd"].account == "hack01"
     assert profiles["mock-amd"].working_dir == "/capstor/scratch/cscs/me"
     assert profiles["mock-amd"].token_uri == DEFAULT_TOKEN_URI

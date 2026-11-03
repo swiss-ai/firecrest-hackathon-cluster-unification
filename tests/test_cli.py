@@ -20,7 +20,13 @@ CUDA_ONLY = str(ROOT / "jobs" / "probe-cuda-only.toml")
 def fake_clusters(monkeypatch: pytest.MonkeyPatch) -> dict[str, FakeFirecrest]:
     monkeypatch.setenv("HACKATHON_ACCOUNT", "hack01")
     monkeypatch.setenv("HACKATHON_SCRATCH", "/scratch")
-    clients = {"mock-nv": FakeFirecrest(), "mock-amd": FakeFirecrest()}
+    monkeypatch.setenv("CLARIDEN_ACCOUNT", "infra01")
+    monkeypatch.setenv("CLARIDEN_SCRATCH", "/scratch")
+    clients = {
+        "mock-nv": FakeFirecrest(),
+        "mock-amd": FakeFirecrest(),
+        "clariden": FakeFirecrest(systems=["clariden", "bristen"]),
+    }
 
     def factory(profile: ClusterProfile, env: Mapping[str, str]) -> Any:
         return clients[profile.name]
@@ -42,6 +48,7 @@ def test_run_on_every_cluster(
     assert [(r["cluster"], r["outcome"]) for r in results] == [
         ("mock-nv", "completed"),
         ("mock-amd", "completed"),
+        ("clariden", "completed"),
     ]
     assert all(r["job"].startswith(r["cluster"] + ":") for r in results)
 
@@ -60,7 +67,11 @@ def test_cuda_only_job_is_rejected_on_the_amd_cluster(
 ) -> None:
     code, results = _run_json(capsys, CUDA_ONLY)
     assert code == 1
-    assert {r["cluster"]: r["outcome"] for r in results} == {"mock-nv": "completed", "mock-amd": "rejected"}
+    assert {r["cluster"]: r["outcome"] for r in results} == {
+        "mock-nv": "completed",
+        "mock-amd": "rejected",
+        "clariden": "completed",
+    }
 
 
 def test_doctor_reports_a_down_cluster(

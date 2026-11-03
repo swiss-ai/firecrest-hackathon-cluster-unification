@@ -29,16 +29,19 @@ working_dir = "${HACKATHON_SCRATCH}"
 mock = true
 fault_rate = 0.0
 
-# The real clusters, for when credentials exist (values as in model-launch-factory).
-# [clusters.clariden]
-# arch = "nvidia"
-# firecrest_url = "https://api.cscs.ch/ml/firecrest/v2"
-# client_id_env = "CLARIDEN_CLIENT_ID"
-# client_secret_env = "CLARIDEN_CLIENT_SECRET"
-# system = "clariden"
-# partition = "normal"
-# working_dir = "${CLARIDEN_SCRATCH}"
-#
+# A real second instance: Clariden on the ML platform, through a Swiss AI app
+# subscribed to that instance only.
+[clusters.clariden]
+arch = "nvidia"
+firecrest_url = "https://api.cscs.ch/ml/firecrest/v2"
+client_id_env = "CLARIDEN_CLIENT_ID"
+client_secret_env = "CLARIDEN_CLIENT_SECRET"
+system = "clariden"
+partition = "normal"
+account = "${CLARIDEN_ACCOUNT}"
+working_dir = "${CLARIDEN_SCRATCH}"
+
+# Beverin, for when an app is subscribed to its instance (values as in model-launch-factory).
 # [clusters.beverin]
 # arch = "amd"
 # firecrest_url = "https://api.svc.cscs.ch/beverin/firecrest/v2"
