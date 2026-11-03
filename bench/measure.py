@@ -79,7 +79,8 @@ def _measure(scenario: Scenario, tool: str, command: list[str], extra_env: dict[
 
 def _run_scenario(scenario: Scenario) -> list[Measurement]:
     baseline = _measure(scenario, "baseline", ["bash", "baseline/run_all.sh"], scenario.baseline_env)
-    mc_command = ["uv", "run", "mc", "run", *scenario.mc_args, "--json"]
+    # The baseline only knows the two mock clusters, so mc runs on the same two.
+    mc_command = ["uv", "run", "mc", "run", *scenario.mc_args, "--clusters", "mock-nv,mock-amd", "--json"]
     unified = _measure(scenario, "mc", mc_command, {})
     return [baseline, unified]
 
