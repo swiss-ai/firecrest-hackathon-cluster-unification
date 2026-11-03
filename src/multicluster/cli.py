@@ -3,7 +3,8 @@
 mc doctor                                  # can every cluster be reached?
 mc run jobs/probe.toml                     # on every cluster
 mc run jobs/probe.toml --arch amd          # wherever the architecture fits
-mc run jobs/probe.toml --clusters mock-nv,mock-amd --fault mock-amd=0.3
+mc run jobs/probe.toml --clusters mock-nv,clariden --max-wait 300
+mc --fault mock-amd=0.3 run jobs/probe.toml   # simulate a flaky instance
 mc status mock-amd:12345
 """
 
@@ -67,7 +68,9 @@ def _print_results(results: list[ClusterResult]) -> None:
 
 async def _run(router: ClusterRouter, args: argparse.Namespace) -> int:
     spec = load_job_spec(args.job)
-    results = await run_on_clusters(router, spec, _selected(router, args), poll_sec=args.poll)
+    results = await run_on_clusters(
+        router, spec, _selected(router, args), poll_sec=args.poll, max_wait_sec=args.max_wait
+    )
     if args.json:
         print(json.dumps([{**asdict(r), "job": str(r.job) if r.job else None} for r in results]))
     else:
@@ -106,6 +109,12 @@ def _parser() -> argparse.ArgumentParser:
     run.add_argument("job", type=Path, help="job spec TOML, e.g. jobs/probe.toml")
     add_selection(run)
     run.add_argument("--poll", type=float, default=5.0, help="seconds between status checks")
+    run.add_argument(
+        "--max-wait",
+        type=float,
+        metavar="SECONDS",
+        help="cancel a job not finished after this long, e.g. stuck in the queue (default: wait)",
+    )
     run.add_argument("--json", action="store_true", help="print results as JSON")
     run.set_defaults(handler=_run)
 

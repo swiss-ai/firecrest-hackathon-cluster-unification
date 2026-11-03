@@ -83,3 +83,18 @@ async def test_runs_send_no_requests_beyond_the_per_cluster_workflow() -> None:
     await run_on_clusters(router, _spec(Arch.NVIDIA), router.select(["mock-nv"]), poll_sec=0)
 
     assert nv.systems_calls == 0
+
+
+async def test_a_job_past_max_wait_is_cancelled_and_reported() -> None:
+    stuck = FakeFirecrest(polls_until_done=10**6)
+    router = _router({"mock-nv": stuck, "mock-amd": FakeFirecrest()})
+
+    (result,) = await run_on_clusters(
+        router, _spec(Arch.NVIDIA), router.select(["mock-nv"]), poll_sec=0, max_wait_sec=0
+    )
+
+    assert result.outcome is Outcome.TIMED_OUT
+    assert "still RUNNING" in result.detail
+    assert result.detail.endswith("cancelled")
+    assert result.job is not None
+    assert stuck.cancelled == [result.job.job_id]

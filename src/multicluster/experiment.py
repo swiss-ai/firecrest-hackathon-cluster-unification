@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 from multicluster.errors import describe_error
-from multicluster.jobs import DEFAULT_POLL_SEC, ClusterJobs, QualifiedJobId
+from multicluster.jobs import DEFAULT_POLL_SEC, ClusterJobs, QualifiedJobId, WaitTimeout
 from multicluster.profiles import ClusterProfile
 from multicluster.router import ClusterRouter
 from multicluster.spec import JobSpec, NoVariantError
@@ -27,6 +27,7 @@ class Outcome(str, Enum):
     FAILED = "failed"  # the job ran and did not complete
     REJECTED = "rejected"  # the job has no variant for this cluster's architecture
     UNREACHABLE = "unreachable"  # the instance could not be used
+    TIMED_OUT = "timed-out"  # not finished within --max-wait; cancelled
 
     def __str__(self) -> str:
         return self.value
@@ -47,13 +48,19 @@ async def run_on_clusters(
     spec: JobSpec,
     profiles: Iterable[ClusterProfile],
     poll_sec: float = DEFAULT_POLL_SEC,
+    max_wait_sec: float | None = None,
 ) -> list[ClusterResult]:
-    runs = (_run_on_cluster(router, spec, profile, poll_sec) for profile in profiles)
+    """Run ``spec`` on every profile; ``max_wait_sec`` bounds each job's wait (default: none)."""
+    runs = (_run_on_cluster(router, spec, profile, poll_sec, max_wait_sec) for profile in profiles)
     return list(await asyncio.gather(*runs))
 
 
 async def _run_on_cluster(
-    router: ClusterRouter, spec: JobSpec, profile: ClusterProfile, poll_sec: float
+    router: ClusterRouter,
+    spec: JobSpec,
+    profile: ClusterProfile,
+    poll_sec: float,
+    max_wait_sec: float | None,
 ) -> ClusterResult:
     started = time.monotonic()
 
@@ -75,10 +82,25 @@ async def _run_on_cluster(
         return result(Outcome.UNREACHABLE, f"submit failed: {describe_error(exc)}")
 
     try:
-        state = await jobs.wait(job)
+        state = await jobs.wait(job, max_wait_sec)
+    except WaitTimeout as exc:
+        return result(Outcome.TIMED_OUT, await _cancel(jobs, job, str(exc)), job=job)
+    except Exception as exc:
+        return result(Outcome.UNREACHABLE, f"lost track of the job: {describe_error(exc)}", job=job)
+
+    try:
         output = await jobs.output(spec, job)
     except Exception as exc:
         return result(Outcome.UNREACHABLE, f"lost track of the job: {describe_error(exc)}", job=job)
 
     outcome = Outcome.COMPLETED if state == "COMPLETED" else Outcome.FAILED
     return result(outcome, state, job=job, output=output.strip())
+
+
+async def _cancel(jobs: ClusterJobs, job: QualifiedJobId, reason: str) -> str:
+    """Cancel a job this run submitted and gave up on; say whether that worked."""
+    try:
+        await jobs.cancel(job)
+    except Exception as exc:
+        return f"{reason}; cancelling failed ({describe_error(exc)}), cancel {job} by hand"
+    return f"{reason}; cancelled"

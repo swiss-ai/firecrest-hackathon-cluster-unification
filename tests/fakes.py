@@ -46,6 +46,7 @@ class FakeFirecrest:
         self._fail_with = fail_with
         self.submitted: list[dict[str, Any]] = []
         self.systems_calls = 0
+        self.cancelled: list[str] = []
         self._polls: dict[str, int] = {}
 
     def _maybe_fail(self) -> None:
@@ -73,6 +74,7 @@ class FakeFirecrest:
         return f"MC_RESULT path={path}\nMC_OK\n"
 
     async def cancel_job(self, system_name: str, jobid: str) -> dict[str, Any]:
+        self.cancelled.append(jobid)
         return {}
 
     async def close_session(self) -> None:
