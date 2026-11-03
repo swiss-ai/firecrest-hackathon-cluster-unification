@@ -50,7 +50,8 @@ def _build_client() -> f7t.v2.AsyncFirecrest:
 async def _wait_for_end(client: f7t.v2.AsyncFirecrest, system: str, job_id: str) -> str:
     while True:
         jobs = await with_retry(lambda: client.job_info(system_name=system, jobid=job_id))
-        state = str(jobs[0]["status"]["state"])
+        # Right after submission the job may not be listed yet; Slurm may append detail.
+        state = str(jobs[0]["status"]["state"]).split()[0] if jobs else "PENDING"
         if state in TERMINAL_STATES:
             return state
         await asyncio.sleep(POLL_SEC)
