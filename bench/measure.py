@@ -26,7 +26,8 @@ class Scenario:
     name: str
     description: str
     baseline_env: dict[str, str] = field(default_factory=dict)
-    mc_args: tuple[str, ...] = ("jobs/probe.toml",)
+    mc_job: str = "jobs/probe.toml"
+    amd_fault_rate: float = 0.0  # share of the AMD instance's requests answered 503, in both tools
 
 
 SCENARIOS = [
@@ -35,20 +36,10 @@ SCENARIOS = [
         "wrong-variant",
         "a CUDA-only job sent to the AMD cluster",
         baseline_env={"IMAGE_ARCH_MOCK_AMD": "nvidia"},
-        mc_args=("jobs/probe-cuda-only.toml",),
+        mc_job="jobs/probe-cuda-only.toml",
     ),
-    Scenario(
-        "flaky",
-        "AMD instance answers 30% of requests with 503",
-        baseline_env={"MOCK_AMD_FAULT_RATE": "0.3"},
-        mc_args=("jobs/probe.toml", "--fault", "mock-amd=0.3"),
-    ),
-    Scenario(
-        "outage",
-        "AMD instance down (every request 503)",
-        baseline_env={"MOCK_AMD_FAULT_RATE": "1"},
-        mc_args=("jobs/probe.toml", "--fault", "mock-amd=1"),
-    ),
+    Scenario("flaky", "AMD instance answers 30% of requests with 503", amd_fault_rate=0.3),
+    Scenario("outage", "AMD instance down (every request 503)", amd_fault_rate=1.0),
 ]
 
 
@@ -78,9 +69,21 @@ def _measure(scenario: Scenario, tool: str, command: list[str], extra_env: dict[
 
 
 def _run_scenario(scenario: Scenario) -> list[Measurement]:
-    baseline = _measure(scenario, "baseline", ["bash", "baseline/run_all.sh"], scenario.baseline_env)
+    baseline_env = {**scenario.baseline_env, "MOCK_AMD_FAULT_RATE": str(scenario.amd_fault_rate)}
+    baseline = _measure(scenario, "baseline", ["bash", "baseline/run_all.sh"], baseline_env)
     # The baseline only knows the two mock clusters, so mc runs on the same two.
-    mc_command = ["uv", "run", "mc", "run", *scenario.mc_args, "--clusters", "mock-nv,mock-amd", "--json"]
+    fault = ["--fault", f"mock-amd={scenario.amd_fault_rate}"]
+    mc_command = [
+        "uv",
+        "run",
+        "mc",
+        *fault,
+        "run",
+        scenario.mc_job,
+        "--clusters",
+        "mock-nv,mock-amd",
+        "--json",
+    ]
     unified = _measure(scenario, "mc", mc_command, {})
     return [baseline, unified]
 
